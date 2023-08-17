@@ -1,0 +1,10 @@
+black
+black[jupyter]
+bokeh
+click
+flake8
+ipykernel
+numpy
+pandas
+PyPDF2
+scikit-learn
