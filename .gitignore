@@ -1,4 +1,5 @@
 /data/*
 /.env/*
 /figures/*
+/csvs/*
 .DS_Store

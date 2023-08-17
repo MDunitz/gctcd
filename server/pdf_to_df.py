@@ -2,14 +2,24 @@ import re
 import pandas as pd
 import PyPDF2
 
-file_path = '../../../Desktop/lab_work/sessions/GCTCD/20230816/40mL_1.x.pdf'
-pdf_file = open(file_path, 'rb') 
-pdf_reader = PyPDF2.PdfReader(pdf_file)
+
 
 
 START_PATTERN = r'\n----\|--------\|----\|-----------\|-----------\|-------\|--------\|--------\|\n'
 END_PATTERN = r'Signal'
 PAGE_END_PATTERN=r'Data File'
+
+def pdf_transform(input_file=None, output_file=None):
+    print(f"Input file: {input_file}, Output file: {output_file}")
+    file_path = '../../../Desktop/lab_work/sessions/GCTCD/20230816/40mL_1.x.pdf'
+    pdf_file = open(file_path, 'rb') 
+    pdf_reader = PyPDF2.PdfReader(pdf_file)
+    start_stop, sample_names = get_start_stop_pts_by_page(pdf_reader)
+    df = get_table_data_by_start_stop(start_stop=start_stop, sample_names=sample_names, pdf_reader=pdf_reader)
+    # df.to_csv()
+    print(df)
+
+
 
 def get_sample_names(page_text):
     sample_names = []
@@ -31,7 +41,7 @@ def create_df_from_table(table, name):
         if len(row) > 7:
             peak, time, type, area, height, width, start, end = row
             peaks.append({
-                'Sample_ID': name,
+                'Sample_Name': name,
                 'Sample_Date': sample_date,
                 'Peak': int(peak),
                 'Time': float(time),
@@ -64,8 +74,7 @@ def get_start_stop_pts_by_page(pdf_reader):
     return start_stop, sample_names
 
 def get_table_data_by_start_stop(start_stop, sample_names, pdf_reader):
-    table_string = None
-    sample_name = None
+    table_string = sample_name = None
     page_count = len(pdf_reader.pages)
     dfs = []
     for page_idx, page_data in enumerate(start_stop): # for each page
@@ -73,43 +82,40 @@ def get_table_data_by_start_stop(start_stop, sample_names, pdf_reader):
         page_end_generator = re.finditer(PAGE_END_PATTERN, page_text)
         page_end_indices = [e.start() for e in page_end_generator]
         if table_string is not None: # check for carryover string from past page 
-            if len(page_data['end']) == 0: # check if its the last page (or if the table goes onto a 3rd+ page)
+            if len(page_data['end']) == 0: # check if table continues to another page
                 table_string = table_string + '\n' + page_text[page_data['start'][0]+74:page_end_indices[-1]-69]
                 if page_idx == page_count -1: # if its the last page 
                     dfs.append(create_df_from_table(table_string, sample_name))
-                    table_string = None
-                    sample_name = None
+                    table_string = sample_name = None
                 continue
             else:
                 table_string = table_string + '\n' + page_text[page_data['start'][0] + 74:page_data['end'][0]]
                 dfs.append(create_df_from_table(table_string, sample_name))
-                table_string = None
-                sample_name = None
+                table_string = sample_name = None
+
         try:
             for array_idx, start_idx in enumerate(page_data['start']):
                 sample_name = sample_names[page_idx][array_idx]
                 table_string = page_text[start_idx + 74: page_data['end'][array_idx]]
                 dfs.append(create_df_from_table(table_string, sample_name))
-                table_string = None
-                sample_name=None
+                table_string = sample_name = None
         except IndexError:
-            if page_idx == page_count -1:
-                print('this code actually got hit')
+            if page_idx == page_count -1: #last page
                 table_string =table_string + '\n' + page_text[start_idx + 74:page_end_indices[-1]-69]
                 dfs.append(create_df_from_table(table_string, sample_name))
             table_string = page_text[start_idx + 74:page_end_indices[-1]]
     result = pd.concat(dfs, ignore_index=True)
-    print(result)
     return result
 
 
 """
 TODO
 - handle dates
+- handle directories
 X handle the end of page/last page
 X merge data frames
 - clean up Code
-- pull into package
+X pull into package
 """
 
 
