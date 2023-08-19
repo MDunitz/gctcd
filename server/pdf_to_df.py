@@ -11,14 +11,22 @@ PAGE_END_PATTERN=r'Data File'
 
 def pdf_transform(input_file=None, output_file=None):
     print(f"Input file: {input_file}, Output file: {output_file}")
-    file_path = '../../../Desktop/lab_work/sessions/GCTCD/20230816/40mL_1.x.pdf'
-    pdf_file = open(file_path, 'rb') 
+    pdf_file = open(input_file, 'rb') 
     pdf_reader = PyPDF2.PdfReader(pdf_file)
-    start_stop, sample_names = get_start_stop_pts_by_page(pdf_reader)
-    df = get_table_data_by_start_stop(start_stop=start_stop, sample_names=sample_names, pdf_reader=pdf_reader)
-    # df.to_csv()
-    print(df)
+    start_stop, sample_names, date = get_start_stop_pts_by_page(pdf_reader)
+    df = get_table_data_by_start_stop(start_stop=start_stop, sample_names=sample_names, pdf_reader=pdf_reader, date=date)
+    return df
 
+
+def get_date(page_text):
+    regex = r'(.*?)Page 1 of'
+    matches = re.findall(regex, page_text)
+    slash_locations = re.finditer(r'/', matches[0])
+    slash_indices = [x.start() for x in slash_locations]
+    date = matches[0][slash_indices[0]-1:slash_indices[1]+5]
+    print(f"date from file: {date}")
+    return date
+    
 
 
 def get_sample_names(page_text):
@@ -32,17 +40,15 @@ def get_sample_names(page_text):
 
     return sample_names
 
-def create_df_from_table(table, name):
+def create_df_from_table(table, name, date):
     peaks = []
-    ### FIX ME
-    sample_date = "8/16/2023"
     for row in table.split('\n'):
         row = " ".join(row.split()).split(" ")
         if len(row) > 7:
             peak, time, type, area, height, width, start, end = row
             peaks.append({
                 'Sample_Name': name,
-                'Sample_Date': sample_date,
+                'Sample_Date': date,
                 'Peak': int(peak),
                 'Time': float(time),
                 'Type': type, 
@@ -69,11 +75,12 @@ def get_start_stop_pts_by_page(pdf_reader):
         data_table_end_indices = [e.start() for e in end_generator]
         if page==0:
             # remove the first instance of signal (only for the first page)
+            date = get_date(page_text=page_text)
             data_table_end_indices.pop(0)
         start_stop.append({"start": data_table_start_indices, "end": data_table_end_indices})
-    return start_stop, sample_names
+    return start_stop, sample_names, date
 
-def get_table_data_by_start_stop(start_stop, sample_names, pdf_reader):
+def get_table_data_by_start_stop(start_stop, sample_names, pdf_reader, date):
     table_string = sample_name = None
     page_count = len(pdf_reader.pages)
     dfs = []
@@ -85,24 +92,27 @@ def get_table_data_by_start_stop(start_stop, sample_names, pdf_reader):
             if len(page_data['end']) == 0: # check if table continues to another page
                 table_string = table_string + '\n' + page_text[page_data['start'][0]+74:page_end_indices[-1]-69]
                 if page_idx == page_count -1: # if its the last page 
-                    dfs.append(create_df_from_table(table_string, sample_name))
+                    dfs.append(create_df_from_table(table_string, sample_name, date))
                     table_string = sample_name = None
                 continue
             else:
                 table_string = table_string + '\n' + page_text[page_data['start'][0] + 74:page_data['end'][0]]
-                dfs.append(create_df_from_table(table_string, sample_name))
+                dfs.append(create_df_from_table(table_string, sample_name, date))
                 table_string = sample_name = None
 
         try:
             for array_idx, start_idx in enumerate(page_data['start']):
                 sample_name = sample_names[page_idx][array_idx]
                 table_string = page_text[start_idx + 74: page_data['end'][array_idx]]
-                dfs.append(create_df_from_table(table_string, sample_name))
+                dfs.append(create_df_from_table(table_string, sample_name, date))
                 table_string = sample_name = None
         except IndexError:
             if page_idx == page_count -1: #last page
-                table_string =table_string + '\n' + page_text[start_idx + 74:page_end_indices[-1]-69]
-                dfs.append(create_df_from_table(table_string, sample_name))
+                if table_string is None:
+                    table_string = page_text[start_idx + 74:page_end_indices[-1]-69]
+                else:
+                    table_string =table_string + '\n' + page_text[start_idx + 74:page_end_indices[-1]-69]
+                dfs.append(create_df_from_table(table_string, sample_name, date))
             table_string = page_text[start_idx + 74:page_end_indices[-1]]
     result = pd.concat(dfs, ignore_index=True)
     return result
@@ -115,6 +125,7 @@ TODO
 X handle the end of page/last page
 X merge data frames
 - clean up Code
+X logging
 X pull into package
 """
 
