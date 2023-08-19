@@ -79,7 +79,7 @@ def pdf_to_csv(pdfs, output_file_name, verbose):
     else:
         timestamp = int(time.time())
         df.to_csv(f"csvs/{timestamp}.csv")
-    print(list(df['Sample_Name']))
+    print(set(df['Sample_Name']))
     return df
     sys.exit(0)
 

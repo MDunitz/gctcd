@@ -13,3 +13,5 @@ def calculate_incubation_length(amount, substrate):
 def convert_gas_to_organic_matter(amount, substrate):
     pass
 
+def microliters_to_mols(amount, substrate):
+    pass
