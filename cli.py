@@ -66,20 +66,21 @@ def pdf_to_csv(pdfs, output_file_name, verbose):
         dfs = []
         for globby in glob.iglob(dir, recursive=True):
             if globby.endswith('.pdf'):
-                dfs.append(pdf_transform(input_file=globby, output_file=output_file_name))
+                dfs.append(pdf_transform(input_file=globby))
         df =  pd.concat(dfs, ignore_index=True)
 
     elif pdfs[-4:] == '.pdf':
-        df = pdf_transform(input_file=pdfs, output_file=output_file_name)
+        df = pdf_transform(input_file=pdfs)
     
     else:
         print(f"{pdfs} is not a directory or a pdf. I dont know what to do with it...")
-    print(df)
     if output_file_name:
-        df.to_csv(output_file_name, mode='a', index=False, header=False)
+        df.to_csv(output_file_name, mode='a', index=True, header=False)
     else:
         timestamp = int(time.time())
         df.to_csv(f"csvs/{timestamp}.csv")
+    print(list(df['Sample_Name']))
+    return df
     sys.exit(0)
 
 

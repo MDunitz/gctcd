@@ -9,8 +9,28 @@ START_PATTERN = r'\n----\|--------\|----\|-----------\|-----------\|-------\|---
 END_PATTERN = r'Signal'
 PAGE_END_PATTERN=r'Data File'
 
-def pdf_transform(input_file=None, output_file=None):
-    print(f"Input file: {input_file}, Output file: {output_file}")
+STANDARDS = {
+    "CH4_2%": "Two percent methane", 
+    "600ppmCO2_2.1?ppmCH4": "619? ppm Methane, 2.X ppm CH4",
+    "20%CO2": "20% CO2, 80% Nitrogen"
+    
+    }
+
+
+# data cleanup
+
+def generate_sample_id_from_sample_name(sample_name):
+    if sample_name.startswith('40ML'):
+        pass
+    if sample_name.startswith(tuple('BEN', 600)):
+        return
+
+
+
+# generate df from pdf
+
+def pdf_transform(input_file=None):
+    print(f"Input file: {input_file}")
     pdf_file = open(input_file, 'rb') 
     pdf_reader = PyPDF2.PdfReader(pdf_file)
     start_stop, sample_names, date = get_start_stop_pts_by_page(pdf_reader)
@@ -90,11 +110,14 @@ def get_table_data_by_start_stop(start_stop, sample_names, pdf_reader, date):
         page_end_indices = [e.start() for e in page_end_generator]
         if table_string is not None: # check for carryover string from past page 
             if len(page_data['end']) == 0: # check if table continues to another page
-                table_string = table_string + '\n' + page_text[page_data['start'][0]+74:page_end_indices[-1]-69]
-                if page_idx == page_count -1: # if its the last page 
-                    dfs.append(create_df_from_table(table_string, sample_name, date))
-                    table_string = sample_name = None
-                continue
+                try:
+                    table_string = table_string + '\n' + page_text[page_data['start'][0]+74:page_end_indices[-1]-69]
+                    if page_idx == page_count -1: # if its the last page 
+                        dfs.append(create_df_from_table(table_string, sample_name, date))
+                        table_string = sample_name = None
+                    continue
+                except:
+                    print(f"BORKED on: {table_string} page_text: {page_text}")
             else:
                 table_string = table_string + '\n' + page_text[page_data['start'][0] + 74:page_data['end'][0]]
                 dfs.append(create_df_from_table(table_string, sample_name, date))
@@ -120,8 +143,8 @@ def get_table_data_by_start_stop(start_stop, sample_names, pdf_reader, date):
 
 """
 TODO
-- handle dates
-- handle directories
+X handle dates
+X handle directories
 X handle the end of page/last page
 X merge data frames
 - clean up Code
