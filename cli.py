@@ -7,6 +7,7 @@ import sys
 import time
 
 from server.pdf_to_df import pdf_transform
+from server.tidy_data import tidy_data
 
 @click.group(
     name="program",
@@ -46,6 +47,26 @@ def command(input_file, output_file, ignore, verbose, fail):
 
 
 @click.command(
+    name="data-cleanup",
+    short_help="short help",
+    help="long help",
+)
+@click.argument("input_file", nargs=1, type=click.Path(exists=True, dir_okay=False))
+@click.argument("output_file", nargs=1, type=click.Path(exists=False, dir_okay=False),  required=False, default=None)
+
+@click.option(
+    "-v", "--verbose", help="When present will set logging level to debug", is_flag=True
+)
+def data_cleanup(input_file, output_file=None, verbose=False):
+    if output_file is None:
+        timestamp = int(time.time())
+        output_file = f"csvs/tidied_{timestamp}.csv"
+    df = tidy_data(input_file)
+    df.to_csv(output_file)
+
+
+
+@click.command(
     name="pdf_to_csv",
     short_help="short help",
     help="long help",
@@ -78,13 +99,15 @@ def pdf_to_csv(pdfs, output_file_name, verbose):
         df.to_csv(output_file_name, mode='a', index=True, header=False)
     else:
         timestamp = int(time.time())
-        df.to_csv(f"csvs/{timestamp}.csv")
-    print(set(df['Sample_Name']))
+        output_file_name = f"csvs/{timestamp}.csv"
+        df.to_csv(output_file_name)
+    print(f"df stored as csv at: {output_file_name}")
     return df
 
 
 program_cli.add_command(command)
 program_cli.add_command(pdf_to_csv)
+program_cli.add_command(data_cleanup)
 
 if __name__ == "__main__":
     program_cli()
