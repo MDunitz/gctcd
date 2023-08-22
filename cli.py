@@ -81,8 +81,6 @@ def pdf_to_csv(pdfs, output_file_name, verbose):
         df.to_csv(f"csvs/{timestamp}.csv")
     print(set(df['Sample_Name']))
     return df
-    sys.exit(0)
-
 
 
 program_cli.add_command(command)

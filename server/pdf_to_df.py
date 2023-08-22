@@ -10,56 +10,6 @@ END_PATTERN = r'Signal'
 PAGE_END_PATTERN=r'Data File'
 
 
-class Standards:
-    CH4_2pph="Two percent methane"
-    CO2_600ppm_CH4_2179ppb="619? ppm Methane, 2.X ppm CH4"
-    CO2_20pph="20% CO2, 80% Nitrogen"
-    AMBIENT_AIR="WHO KNOWS, probs around 440ppm CO2, 1921 ppb?"
-    
-
-
-# data cleanup
-
-# NOTE THIS WILL BREAK IF YOU HAVE OVER 10 SAMPLES IN A TREATMENT or 10 diff treatments
-def generate_sample_id_from_sample_name(sample_name):
-    if sample_name is None:
-        return "DROP_ME"
-    sample_info = sample_name.split('_')
-    if sample_name.startswith('40ML_'):
-        return f"40mL_{sample_info[0][-1]}.{sample_info[1][-1]}"
-    if sample_name.startswith('40ML'):
-       return f"40mL_{sample_name[4]}.{sample_name[-1]}"
-    if sample_name.startswith('40_'):
-        return f"40mL_{sample_info[1][0]}.{sample_info[1][-1]}"
-   
-    if sample_name.startswith(tuple(['BEN', '600'])):
-        return "CO2_600ppm_CH4_2179ppb"
-    
-    if sample_name.startswith('2ML'):
-         return f"2mL_{sample_info[1]}.{sample_info[2][0]}.{sample_info[2][1]}"
-    if sample_name.startswith('1'):
-        return f"2mL_{sample_info[0]}.{sample_info[1][0]}.{sample_info[1][-1]}"
-    if sample_name.startswith('STD_AIR'):
-        return "AMBIENT_AIR"
-    
-    if sample_name.startswith(tuple(['2%CH4', 'CH4_STD'])):
-        return "CH4_2pph"
-    
-    if sample_name.startswith(tuple(['20%', 'EXHALE01'])):
-        return "CO2_20pph"
-    return "DROP_ME"
-
-
-def print_samples(a, match):
-    for x in a:
-        b = generate_sample_id_from_sample_name(x)
-        if b == match:
-            print(b, ":", x)
-
-
-
-# generate df from pdf
-
 def pdf_transform(input_file=None):
     print(f"Input file: {input_file}")
     pdf_file = open(input_file, 'rb') 
@@ -138,17 +88,17 @@ def get_table_data_by_start_stop(start_stop, sample_names, pdf_reader, date):
         page_text = pdf_reader.pages[page_idx].extract_text()
         page_end_generator = re.finditer(PAGE_END_PATTERN, page_text)
         page_end_indices = [e.start() for e in page_end_generator]
-        if table_string is not None: # check for carryover string from past page 
-            if len(page_data['end']) == 0: # check if table continues to another page
-                try:
+        if table_string is not None: # check for carryover string from past page
+            if len(page_data['end']) == 0: # check if table doesnt end on this page
+                if len(page_data['start']) == 0: # basically there is nothing on this page
+                    dfs.append(create_df_from_table(table_string, sample_name, date))
+                    table_string = sample_name = None
+                else:
                     table_string = table_string + '\n' + page_text[page_data['start'][0]+74:page_end_indices[-1]-69]
                     if page_idx == page_count -1: # if its the last page 
                         dfs.append(create_df_from_table(table_string, sample_name, date))
                         table_string = sample_name = None
                     continue
-                except Exception as e:
-                    print(f"BORKED on: {table_string} page_text: {page_text}")
-                    print(e)
             else:
                 table_string = table_string + '\n' + page_text[page_data['start'][0] + 74:page_data['end'][0]]
                 dfs.append(create_df_from_table(table_string, sample_name, date))
