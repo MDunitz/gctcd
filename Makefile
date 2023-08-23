@@ -13,10 +13,10 @@ install-reqs:
 
 .PHONY: init
 init: clean
-	python3 -m venv .env
+	python3 -m venv .venv
 	pwd
 	ls -la
-	. .env/bin/activate
+	. .venv/bin/activate
 	make install-reqs
 	@if [ "$(vscode)" = "True" ]; then\
 	    ipython kernel install --user --name=$(project);\

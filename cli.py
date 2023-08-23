@@ -58,11 +58,15 @@ def command(input_file, output_file, ignore, verbose, fail):
     "-v", "--verbose", help="When present will set logging level to debug", is_flag=True
 )
 def data_cleanup(input_file, output_file=None, verbose=False):
+    if verbose:
+        logging.basicConfig(level=logging.debug)
     if output_file is None:
         timestamp = int(time.time())
         output_file = f"csvs/tidied_{timestamp}.csv"
     df = tidy_data(input_file)
     df.to_csv(output_file)
+    print(f"df stored as csv at: {output_file}")
+
 
 
 
