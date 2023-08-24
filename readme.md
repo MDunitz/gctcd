@@ -11,7 +11,8 @@ If you are using Vscode you can then set the jupyter notebook kernel to $PROJECT
 
 
 ## Ongoing work/TODO tracker
-- [ ] read in experiment csvs and merge with df
-- [ ] apply area -> conc transformation
-- [ ] graph conc vs salt ratio (color by incubation length?)
+- [x] read in experiment csvs and merge with df
+- [x] apply area -> conc transformation
+- [x] graph conc vs salt ratio (color by incubation length?)
+- [ ] add rows for "below the limit of detection"
 - [ ] stat analysis/error bars
