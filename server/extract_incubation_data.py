@@ -27,7 +27,7 @@ def set_sample_id(row):
         return f"2mL_{sample_name}"
         
 
-def load_and_process_incubation_data(path_to_incubations):
+def extract_and_process_incubation_data(path_to_incubations):
     incubation_df = extract_incubation_data(path_to_incubations)
     incubation_df = tidy_incubation_data(incubation_df)
     return incubation_df

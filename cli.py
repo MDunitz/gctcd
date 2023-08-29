@@ -7,7 +7,7 @@ import sys
 import time
 
 from server.pdf_to_df import pdf_transform
-from server.tidy_data import tidy_data
+from server.transform_initial_sample_data import tidy_data
 
 @click.group(
     name="program",

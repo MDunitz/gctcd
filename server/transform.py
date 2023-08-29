@@ -1,14 +1,8 @@
 from datetime import datetime
 import pandas as pd
 
-from .extract_incubation_data import extract_incubation_data
 
-
-path_to_incubations = "../../lab_work/sessions/incubations"
-
-def process_sample_data(path_to_csv, path_to_incubations=path_to_incubations):
-    data_df = pd.read_csv(path_to_csv)
-    incubation_df = extract_incubation_data(path_to_incubations)
+def process_sample_data(data_df, incubation_df):
     df = pd.merge(data_df, incubation_df, on='sample_id', how='left')
     df['incubation_length'] = df.apply(lambda row: set_incubation_length(row), axis=1)
     df['salt_ratio'] = df.apply(lambda row: set_salt_to_biomass(row), axis=1)
@@ -18,13 +12,17 @@ def process_sample_data(path_to_csv, path_to_incubations=path_to_incubations):
 
 
 def set_incubation_length(row):
-    try:
-        sample_date  = datetime.strptime(row['Sample_Date'], '%m/%d/%Y')
-        incubation_start_date  = datetime.strptime(row['incubation_start_date'], '%m/%d/%y')
-        return (sample_date - incubation_start_date).days
+    if (row['is_std'] == False) & (row['sample_id'] != "DROP_ME"):
+        try:
+            sample_date  = datetime.strptime(row['Sample_Date'], '%m/%d/%Y')
+            incubation_start_date  = datetime.strptime(row['incubation_start_date'], '%m/%d/%y')
+            return (sample_date - incubation_start_date).days
 
-    except Exception as e:
-        print(e, row['Sample_Date'], row['incubation_start_date'])
+        except Exception as e:
+            print(e)
+            print(row)
+            return None
+    else:
         return None
     
 def set_salt_to_biomass(row):

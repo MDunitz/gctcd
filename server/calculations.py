@@ -23,7 +23,7 @@ def convert_methane_area_to_ppm_FID(amount):
 
 def convert_CO2_area_to_ppm_TCD_CO2(amount):
     if amount==-1:
-        return 100 # This is the limit of detection for the GCTCD # TODO FIND SOURCE
+        return 10 # This is the limit of detection for the GCTCD # TODO FIND SOURCE
     ppm = 1.75* amount + -25.5
     return ppm
 
