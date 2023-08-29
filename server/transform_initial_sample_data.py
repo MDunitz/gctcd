@@ -18,7 +18,6 @@ def tidy_data(input_file):
     df =  pd.concat([df, extra_peaks_df], ignore_index=True)
     df['known_conc'] = df.apply(lambda row: set_standards_conc(row), axis=1)
     df['calculated_conc'] = df.apply(lambda row: set_theoretical_conc(row), axis=1)
-    print(np.unique(df['sample_id'], return_counts=True))
     return df
 
 
@@ -143,12 +142,6 @@ def label_is_std(row):
        return False
 
 
-def get_relevant_columns(df):
-    df = df[(df['peak_compound'].notnull()) & (df['sample_id']!="DROP_ME")&(df['is_std']==False)]
-    print(df)
-
-
-
 def set_theoretical_conc(row):
     if row['peak_compound'] is None:
         return None
@@ -171,6 +164,3 @@ def set_standards_conc(row):
         compound = row['peak_compound']
         return STANDARDS[sample_id]['makeup_in_ppm'][compound]
 
-
-# df = pd.read_csv(os.path.join('csvs', file_name))
-# file_name = 'tidied_1692734643.csv'

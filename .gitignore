@@ -1,7 +1,9 @@
 /data/*
 /server/__pycache__/*
-/.env/*
+.env
+.venv/*
 /figures/*
 /csvs/*
 .DS_Store
+.vscode/*
 
