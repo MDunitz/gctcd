@@ -64,6 +64,7 @@ def data_cleanup(input_file, output_file=None, verbose=False):
         timestamp = int(time.time())
         output_file = f"csvs/tidied_{timestamp}.csv"
     df = tidy_data(input_file)
+    print(df.columns)
     df.to_csv(output_file)
     print(f"df stored as csv at: {output_file}")
 

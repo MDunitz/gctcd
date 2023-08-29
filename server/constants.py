@@ -13,3 +13,6 @@ STANDARDS = {
 
 V_m = 24.0  #  Assuming at room temp (298K) and 1 atm => molar volue of gas is 24.0 dm^3
     # https://chemistrymadesimple.net/episode/16/#:~:text=Room%20Temperature%20and%20Pressure%20(RTP,24.0%20dm%C2%B3%20(%2024.0%20L)
+
+GCTCD = "GCTCD"
+GCFID = "GCFID"

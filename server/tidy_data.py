@@ -1,21 +1,77 @@
 import os
-from .calculations import convert_CO2_area_to_ppm_TCD_CO2, convert_methane_area_to_ppm_JAMES_FID
+from .calculations import convert_CO2_area_to_ppm_TCD_CO2, convert_methane_area_to_ppm_FID
 
 import numpy as np
 import pandas as pd
 
-from .constants import COMPOUNDS, STANDARDS
+from .constants import COMPOUNDS, STANDARDS, GCFID, GCTCD
 
 
 def tidy_data(input_file):
     df = pd.read_csv(input_file)
-    # df.rename({"Sample_Name": "sample_name"})
     df['sample_id'] = df.apply(lambda row: generate_sample_id_from_sample_name(row['Sample_Name']), axis=1)
     df['peak_compound'] = df.apply(lambda row: label_peaks_by_retention_time(row), axis=1)
     df['is_std'] = df.apply(lambda row: label_is_std(row), axis=1)
+
+    ## include peaks below limit of detection
+    extra_peaks_df = handle_limit_of_detection(df)
+    df =  pd.concat([df, extra_peaks_df], ignore_index=True)
     df['known_conc'] = df.apply(lambda row: set_standards_conc(row), axis=1)
     df['calculated_conc'] = df.apply(lambda row: set_theoretical_conc(row), axis=1)
     print(np.unique(df['sample_id'], return_counts=True))
+    return df
+
+
+def handle_limit_of_detection(df):
+    sub_df = df[(df['sample_id']!="DROP_ME") & (df['is_std']==False)]
+    groups = sub_df.groupby(['sample_id', 'Sample_Date', 'Instrument'])
+    extra_peaks = []
+    group_dict = dict(list(groups))
+    for key, value in group_dict.items():
+        if key[2] == GCTCD:
+            compounds = value['peak_compound'].values
+            if 'CO2' not in compounds:
+                print('no CO2 here')
+                extra_peaks.append({
+                'Sample_Name': value['Sample_Name'].iloc[0],
+                'Sample_Date':key[1],
+                'Instrument': key[2],
+                'Peak': int(-1),
+                'Time': None,
+                'Type': None, 
+                'Area': -1,
+                'Height': None,
+                'Width': None,
+                'Start': None,
+                'End': None,
+                "pdf_file_name": value['pdf_file_name'].iloc[0],
+                "sample_id": value['sample_id'].iloc[0],
+                "peak_compound": "CO2",
+                "is_std": False
+            })
+        elif key[2] == GCFID:
+            compounds = value['peak_compound'].values
+            if 'CH4' not in compounds:
+                extra_peaks.append({
+                'Sample_Name': value['Sample_Name'].iloc[0],
+                'Sample_Date':key[1],
+                'Instrument': key[2],
+                'Peak': int(-1),
+                'Time': None,
+                'Type': None, 
+                'Area': -1,
+                'Height': None,
+                'Width': None,
+                'Start': None,
+                'End': None,
+                "pdf_file_name": value['pdf_file_name'].iloc[0],
+                "sample_id": value['sample_id'].iloc[0],
+                "peak_compound": "CH4",
+                "is_std": False
+            })
+        else:
+            print(f"issue with the instrument in {key}, \n {value}")
+    df = pd.DataFrame(extra_peaks)
     return df
 
 # data cleanup
@@ -87,26 +143,22 @@ def label_is_std(row):
        return False
 
 
-# def incubation_csvs_to_df(path_to_incubations=None):
-#     if path_to_incubations is None:
-#         path_to_incubations = "~/Desktop/lab_work/sessions/incubations"
-
-#     for file_name is os.listdir(path_to_incubations)
-
-
 def get_relevant_columns(df):
     df = df[(df['peak_compound'].notnull()) & (df['sample_id']!="DROP_ME")&(df['is_std']==False)]
     print(df)
+
+
 
 def set_theoretical_conc(row):
     if row['peak_compound'] is None:
         return None
     if row['Instrument'] == 'GCTCD':
             if row['peak_compound'] == COMPOUNDS["CO2"]["name"]:
+                print(row['Area'])
                 return convert_CO2_area_to_ppm_TCD_CO2(row['Area'])
     if row["Instrument"] == "GCFID":
         if row['peak_compound'] == COMPOUNDS["CH4"]["name"]:
-            return convert_methane_area_to_ppm_JAMES_FID(row['Area'])
+            return convert_methane_area_to_ppm_FID(row['Area'])
 
 
 

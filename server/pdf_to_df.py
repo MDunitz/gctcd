@@ -1,13 +1,14 @@
 import re
 import pandas as pd
 import PyPDF2
-
+from .constants import *
 
 
 
 START_PATTERN = r'\n----\|--------\|----\|-----------\|-----------\|-------\|--------\|--------\|\n'
 END_PATTERN = r'Signal'
 PAGE_END_PATTERN=r'Data File'
+
 
 
 def pdf_transform(input_file=None):
@@ -33,9 +34,9 @@ def get_instrument(page_text):
     regex = r'Data File C:\\HPCHEM\\(.*?)\\'
     instrument_id = re.search(regex, page_text).group(1)
     if int(instrument_id) == 2:
-        return "GCFID"
+        return GCFID
     elif int(instrument_id) == 4:
-        return "GCTCD"
+       return GCTCD
     else:
         print("Could NOT id the instrument from the pdf")
         return None
@@ -77,7 +78,7 @@ def create_df_from_table(table, name, file_info):
                 'Width': float(width),
                 'Start': float(start),
                 'End': float(end),
-                "pdf_file_name": file_info['input_file']
+                "pdf_file_name": file_info['input_file'],
             })
     df = pd.DataFrame(peaks)
     return df
@@ -147,5 +148,8 @@ def get_table_data_by_start_stop(start_stop, sample_names, pdf_reader, file_info
         if len(sample_names[page_idx]) > len(page_data['start']): # sample named on page before the table starts
             sample_name = sample_names[page_idx][array_idx + 1]
             table_string = "" # hack to correctly associate sample name with sample data on next page
+    
     result = pd.concat(dfs, ignore_index=True)
     return result
+
+
