@@ -106,7 +106,6 @@ def generate_sample_id_from_sample_name(sample_name):
         # if sample_name.startswith('2ML_'):
             # return f"2mL_{sample_info[1]}.{sample_info[2][0]}.{sample_info[2][1]}"
         if sample_name.startswith('2ML'):
-            print(f"sample name: {sample_name}")
             return f"2mL_{sample_info[1]}.{sample_info[2][0]}.{sample_info[2][1]}"
 
         # Std

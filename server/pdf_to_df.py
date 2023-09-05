@@ -1,4 +1,156 @@
- samplle = ["A1_10m", "A2_10m", "A3_10m", "B1_10m", "B2_10m", "B3_10m", "B4_10m", "B5_10m", "B6_10m", "C1_10m", "C2_10m", "C3_10m", "D1_10m", "D2_10m", "D3_10m", "B1_30m", "B2_30m", "B3_30m", "B1_1h", "B2_1h", "B3_1h", "B1_2h", "B2_2h", "B3_2h", "B1_4h", "B2_4h", "B3_4h", "B1_8h", "B2_8h", "B3_8h", "A1_24h", "A2_24h", "A3_24h", "A4_24h", "A5_24h", "A6_24h", "B1_24h", "B2_24h", "B3_24h", "B4_24h", "B5_24h", "B6_24h", "C1_24h", "C2_24h", "C3_24h", "D1_24h", "D2_24h", "D3_24h"]
+import re
+import pandas as pd
+import PyPDF2
+from .constants import *
 
 
- OD = [0.0074, 0.0024, 0.0024, 0.0048, 0.0021, 0.0026, 0.0269, 0.0032, 0.022, 0.0025, 0.003, 0.0038, 0.0056, 0.0079, 0.0097, 0.0039, 0.0037, 0.0029, 0.0036, 0.0045, 0.0021, 0.0033, 0.0029, 0.0017, 0.0035, 0.002, 0.0025, 0.0025, 0.0022, 0.0016, 0.1589, 0.0038, 0.143, 0.2848, 0.1355, 0.276, 0, 0.0014, 0.0005, 0.0237, 0.0007, 0.0169, 0.001, 0.0017, 0.0023, 0.0042, 0.0069, 0.0081]
+
+START_PATTERN = r'\n----\|--------\|----\|-----------\|-----------\|-------\|--------\|--------\|\n'
+END_PATTERN = r'Signal'
+PAGE_END_PATTERN=r'Data File'
+
+
+
+def pdf_transform(input_file=None):
+    print(f"Input file: {input_file}")
+    pdf_file = open(input_file, 'rb') 
+    pdf_reader = PyPDF2.PdfReader(pdf_file)
+    start_stop, sample_names, date, instrument = get_start_stop_pts_by_page(pdf_reader)
+    file_info = {"date": date, "instrument": instrument, "input_file": input_file}
+    df = get_table_data_by_start_stop(start_stop=start_stop, sample_names=sample_names, pdf_reader=pdf_reader, file_info=file_info)
+    return df
+
+
+def get_date(page_text):
+    regex = r'(.*?)Page 1 of'
+    matches = re.findall(regex, page_text)
+    slash_locations = re.finditer(r'/', matches[0])
+    slash_indices = [x.start() for x in slash_locations]
+    date = matches[0][slash_indices[0]-1:slash_indices[1]+5]
+    return date
+    
+
+def get_instrument(page_text):
+    regex = r'Data File C:\\HPCHEM\\(.*?)\\'
+    instrument_id = re.search(regex, page_text).group(1)
+    if int(instrument_id) == 2:
+        return GCFID
+    elif int(instrument_id) == 4:
+       return GCTCD
+    else:
+        print("Could NOT id the instrument from the pdf")
+        return None
+    
+
+
+def get_sample_names(page_text, page):
+    sample_names = []
+    regex = r'Signal(.*?)\n'
+    matches = re.findall(regex, page_text)
+    try:
+        for x in matches:
+            sample_name_regex = r'DUNITZ\\(.*?)\.D'
+            sample_name = re.search(sample_name_regex, x).group(1)
+            sample_names.append(sample_name)
+    except AttributeError: # if the sample name isnt embedded in the signal get it from elsewhere
+        regex = r'Sample Name: (.*?)\n'
+        sample_name = re.search(regex, page_text).group(1)
+        sample_names.append(sample_name)
+    if len(sample_names)==0:
+        print(f"No sample name found for page: {page}")
+    return sample_names
+
+def create_df_from_table(table, name, file_info):
+    peaks = []
+    for row in table.split('\n'):
+        row = " ".join(row.split()).split(" ")
+        if len(row) > 7:
+            peak, time, type, area, height, width, start, end = row
+            peaks.append({
+                'Sample_Name': name,
+                'Sample_Date': file_info['date'],
+                'Instrument': file_info['instrument'],
+                'Peak': int(peak),
+                'Time': float(time),
+                'Type': type, 
+                'Area': float(area),
+                'Height': float(height),
+                'Width': float(width),
+                'Start': float(start),
+                'End': float(end),
+                "pdf_file_name": file_info['input_file'],
+            })
+    df = pd.DataFrame(peaks)
+    return df
+
+
+def get_start_stop_pts_by_page(pdf_reader):
+    page_count = len(pdf_reader.pages)
+    start_stop = []
+    sample_names = []
+    for page in range(0, page_count):
+        page_text = pdf_reader.pages[page].extract_text()
+        sample_names.append(get_sample_names(page_text, page))
+        start_generator = re.finditer(START_PATTERN, page_text)
+        end_generator = re.finditer(END_PATTERN, page_text)
+        data_table_start_indices = [e.start() for e in start_generator]
+        data_table_end_indices = [e.start() for e in end_generator]
+        if page==0:
+            # remove the first instance of signal (only for the first page)
+            date = get_date(page_text=page_text)
+            data_table_end_indices.pop(0)
+            instrument = get_instrument(page_text)
+        start_stop.append({"start": data_table_start_indices, "end": data_table_end_indices})
+    return start_stop, sample_names, date, instrument
+
+def get_table_data_by_start_stop(start_stop, sample_names, pdf_reader, file_info):
+    table_string = sample_name = None
+    page_count = len(pdf_reader.pages)
+    dfs = []
+    for page_idx, page_data in enumerate(start_stop): # for each page
+        page_text = pdf_reader.pages[page_idx].extract_text()
+        page_end_generator = re.finditer(PAGE_END_PATTERN, page_text)
+        page_end_indices = [e.start() for e in page_end_generator]
+        if table_string is not None: # check for carryover string from past page
+
+            if len(page_data['end']) == 0: # check if table doesnt end on this page
+                if len(page_data['start']) == 0: # basically there is nothing on this page 
+                    dfs.append(create_df_from_table(table_string, sample_name, file_info))
+                    table_string = sample_name = None
+                else:
+                    table_string = table_string + '\n' + page_text[page_data['start'][0]+74:page_end_indices[-1]-69]
+                    if page_idx == page_count -1: # if its the last page 
+                        dfs.append(create_df_from_table(table_string, sample_name, file_info))
+                        table_string = sample_name = None
+                    continue
+            else:
+                table_string = table_string + '\n' + page_text[page_data['start'][0] + 74:page_data['end'][0]]
+                dfs.append(create_df_from_table(table_string, sample_name, file_info))
+                # pop off first start/end indexes so the sample names match the table (and we dont grab the same table again in the for loop below)
+                page_data['start'].pop(0)
+                page_data['end'].pop(0)
+                table_string = sample_name = None
+
+        try:
+            for array_idx, start_idx in enumerate(page_data['start']):
+                sample_name = sample_names[page_idx][array_idx]
+                table_string = page_text[start_idx + 74: page_data['end'][array_idx]]
+                dfs.append(create_df_from_table(table_string, sample_name, file_info))
+                table_string = sample_name = None
+        except IndexError:
+            if page_idx == page_count -1: #last page
+                if table_string is None:
+                    table_string = page_text[start_idx + 74:page_end_indices[-1]-69]
+                else:
+                    table_string =table_string + '\n' + page_text[start_idx + 74:page_end_indices[-1]-69]
+                dfs.append(create_df_from_table(table_string, sample_name, file_info))
+            table_string = page_text[start_idx + 74:page_end_indices[-1]]
+        if len(sample_names[page_idx]) > len(page_data['start']): # sample named on page before the table starts
+            try:
+                sample_name = sample_names[page_idx][array_idx + 1]
+            except IndexError:
+                print(f"sample_names: {sample_names}, page_idx: {page_idx}, page_count: {page_count}, array_idx: {array_idx}, table_String: {table_string}, sample_name: {sample_name}, page_data: {page_data}, page_text: {page_text}")
+            table_string = "" # hack to correctly associate sample name with sample data on next page
+    
+    result = pd.concat(dfs, ignore_index=True)
+    return result
