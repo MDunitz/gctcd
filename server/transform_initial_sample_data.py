@@ -27,14 +27,18 @@ def handle_limit_of_detection(df):
     extra_peaks = []
     group_dict = dict(list(groups))
     for key, value in group_dict.items():
-        if key[2] == GCTCD:
-            compounds = value['peak_compound'].values
+        instrument = key[2]
+        compounds = value['peak_compound'].values
+        sample_name= value['Sample_Name'].iloc[0]
+        sample_date = key[1]
+        pdf_file_name =  value['pdf_file_name'].iloc[0]
+        if instrument == GCTCD:
             if 'CO2' not in compounds:
-                print('no CO2 here')
+                print(f"no CO2 here: \nsample name: {sample_name} \n date: {sample_date} \n pdf_file_name: {pdf_file_name} \n instrument: {instrument}")
                 extra_peaks.append({
-                'Sample_Name': value['Sample_Name'].iloc[0],
-                'Sample_Date':key[1],
-                'Instrument': key[2],
+                'Sample_Name': sample_name,
+                'Sample_Date':sample_date,
+                'Instrument': instrument,
                 'Peak': int(-1),
                 'Time': None,
                 'Type': None, 
@@ -43,18 +47,18 @@ def handle_limit_of_detection(df):
                 'Width': None,
                 'Start': None,
                 'End': None,
-                "pdf_file_name": value['pdf_file_name'].iloc[0],
+                "pdf_file_name": pdf_file_name,
                 "sample_id": value['sample_id'].iloc[0],
                 "peak_compound": "CO2",
                 "is_std": False
             })
-        elif key[2] == GCFID:
+        elif instrument == GCFID:
             compounds = value['peak_compound'].values
             if 'CH4' not in compounds:
                 extra_peaks.append({
-                'Sample_Name': value['Sample_Name'].iloc[0],
-                'Sample_Date':key[1],
-                'Instrument': key[2],
+                'Sample_Name': sample_name,
+                'Sample_Date':sample_date,
+                'Instrument': instrument,
                 'Peak': int(-1),
                 'Time': None,
                 'Type': None, 
@@ -63,7 +67,7 @@ def handle_limit_of_detection(df):
                 'Width': None,
                 'Start': None,
                 'End': None,
-                "pdf_file_name": value['pdf_file_name'].iloc[0],
+                "pdf_file_name": pdf_file_name,
                 "sample_id": value['sample_id'].iloc[0],
                 "peak_compound": "CH4",
                 "is_std": False
@@ -79,10 +83,12 @@ def handle_limit_of_detection(df):
 # also set up a consistent naming scheme moving forward ffs
 def generate_sample_id_from_sample_name(sample_name):
     try:
-        #  40ML1003 
+        
         if sample_name is None:
             return "DROP_ME"
         sample_info = sample_name.split('_')
+        
+        #  2ML_2_30
         if sample_name.startswith('40ML_'):
             return f"40mL_{sample_info[0][-1]}.{sample_info[1][-1]}"
         if sample_name.startswith('40ML10'):
@@ -97,11 +103,17 @@ def generate_sample_id_from_sample_name(sample_name):
             return f"40mL_{sample_name[4]}.{sample_name[-1]}"
         if sample_name.startswith('40_'):
             return f"40mL_{sample_info[1][0]}.{sample_info[1][-1]}"
+        # if sample_name.startswith('2ML_'):
+            # return f"2mL_{sample_info[1]}.{sample_info[2][0]}.{sample_info[2][1]}"
+        if sample_name.startswith('2ML'):
+            print(f"sample name: {sample_name}")
+            return f"2mL_{sample_info[1]}.{sample_info[2][0]}.{sample_info[2][1]}"
+
+        # Std
         if sample_name.startswith(tuple(['BEN', '600', '2.979'])):
             return  STANDARDS['CO2_600ppm_CH4_2179ppb']['name']
-        if sample_name.startswith('2ML'):
-            return f"2mL_{sample_info[1]}.{sample_info[2][0]}.{sample_info[2][1]}"
         if sample_name.startswith('1'):
+            print(f"sample name: {sample_name}")
             return f"2mL_{sample_info[0]}.{sample_info[1][0]}.{sample_info[1][-1]}"
         if sample_name.startswith('STD_AIR'):
             return STANDARDS['AMBIENT_AIR']['name']
@@ -147,7 +159,6 @@ def set_theoretical_conc(row):
         return None
     if row['Instrument'] == 'GCTCD':
             if row['peak_compound'] == COMPOUNDS["CO2"]["name"]:
-                print(row['Area'])
                 return convert_CO2_area_to_ppm_TCD_CO2(row['Area'])
     if row["Instrument"] == "GCFID":
         if row['peak_compound'] == COMPOUNDS["CH4"]["name"]:
@@ -162,5 +173,8 @@ def set_standards_conc(row):
     if row['is_std'] == True:
         sample_id = row['sample_id']
         compound = row['peak_compound']
-        return STANDARDS[sample_id]['makeup_in_ppm'][compound]
+        try:
+            return STANDARDS[sample_id]['makeup_in_ppm'][compound]
+        except KeyError:
+            print(sample_id)
 

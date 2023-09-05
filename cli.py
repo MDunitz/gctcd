@@ -93,6 +93,7 @@ def pdf_to_csv(pdfs, output_file_name, verbose):
         for globby in glob.iglob(dir, recursive=True):
             if globby.endswith('.pdf'):
                 dfs.append(pdf_transform(input_file=globby))
+                print
         df =  pd.concat(dfs, ignore_index=True)
 
     elif pdfs[-4:] == '.pdf':

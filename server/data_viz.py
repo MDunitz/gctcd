@@ -28,6 +28,7 @@ def create_co2_chart(df):
 def create_methane_chart(df):
     methane_df = get_methane_df(df)
     plot = create_conc_v_salt_ratio_with_annotated_treatments_chart("Methane conc v Salt:Organic Matter", methane_df)
+    plot.line(x=1)
     return plot
 
 
@@ -35,18 +36,20 @@ def create_methane_chart(df):
 
 
 def create_conc_v_salt_ratio_with_annotated_treatments_chart(title, df):
+    incubation_length_max = int(df["incubation_length"].max())
     wet_df = ColumnDataSource(df[df["treatment"]=="Wet"])
     dry_df = ColumnDataSource(df[df["treatment"]=="Dry"])
     ratios = ["1:0", "16:1", "1:1", "1:5"]
 
     TOOLTIPS = [
     ("sample_id", "@sample_id"),
-    ("ratio", "@salt_ratio")
+    ("calculated_conc", "@calculated_conc")
         ]
-    exp_cmap = LinearColorMapper(palette=Inferno256, low=60, high=0)
+    
+    exp_cmap = LinearColorMapper(palette=Inferno256, low=incubation_length_max, high=0)
     p = plotting.figure(
         title=title,
-        x_axis_label = "Salt:Organic Matter",
+        x_axis_label = "Organic Matter:Salt",
         y_axis_label = "Calculated Conc (ppm)",
         x_range=ratios,
         y_axis_type="log",
@@ -85,13 +88,13 @@ def create_conc_v_salt_ratio_with_annotated_treatments_chart(title, df):
 
 def create_salt_ratio_v_conc_chart(title, df):
     df = ColumnDataSource(df)
-    ratios = ["1:0", f"16:1", "1:1", "1:5"]
+    ratios = ["1:0", "16:1", "1:1", "1:5"]
 
     TOOLTIPS = [("sample_id", "@sample_id")]
     exp_cmap = LinearColorMapper(palette=Inferno256, low=60, high=0)
     p = plotting.figure(
         title=title,
-        x_axis_label = "Salt:Organic Matter",
+        x_axis_label = "Organic Matter:Salt",
         y_axis_label = "Calculated Conc (ppm)",
         x_range=ratios,
         y_axis_type="log",
