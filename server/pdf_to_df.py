@@ -112,22 +112,25 @@ def get_table_data_by_start_stop(start_stop, sample_names, pdf_reader, file_info
         page_end_generator = re.finditer(PAGE_END_PATTERN, page_text)
         page_end_indices = [e.start() for e in page_end_generator]
         if table_string is not None: # check for carryover string from past page
-
             if len(page_data['end']) == 0: # check if table doesnt end on this page
                 if len(page_data['start']) == 0: # basically there is nothing on this page 
                     dfs.append(create_df_from_table(table_string, sample_name, file_info))
                     table_string = sample_name = None
                 else:
-                    table_string = table_string + '\n' + page_text[page_data['start'][0]+74:page_end_indices[-1]-69]
+                    # table_string = table_string + '\n' + page_text[page_data['start'][0]+74:page_end_indices[-1]-69]
+                    table_string = table_string + '\n' + page_text[page_data['start'][0]+71:page_end_indices[-1]]
                     if page_idx == page_count -1: # if its the last page 
                         dfs.append(create_df_from_table(table_string, sample_name, file_info))
                         table_string = sample_name = None
                     continue
             else:
-                table_string = table_string + '\n' + page_text[page_data['start'][0] + 74:page_data['end'][0]]
-                dfs.append(create_df_from_table(table_string, sample_name, file_info))
-                # pop off first start/end indexes so the sample names match the table (and we dont grab the same table again in the for loop below)
-                page_data['start'].pop(0)
+                if page_data['end'][0] < page_data['start'][0]: # edge case where table ended on above page next table starts here
+                    dfs.append(create_df_from_table(table_string, sample_name, file_info))
+                else:
+                    table_string = table_string + '\n' + page_text[page_data['start'][0] + 74:page_data['end'][0]]
+                    dfs.append(create_df_from_table(table_string, sample_name, file_info))
+                    # pop off first start/end indexes so the sample names match the table (and we dont grab the same table again in the for loop below)
+                    page_data['start'].pop(0)
                 page_data['end'].pop(0)
                 table_string = sample_name = None
 

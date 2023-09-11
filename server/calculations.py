@@ -16,14 +16,14 @@ def convert_methane_area_to_ppm_JAMES_FID(amount):
 
 def convert_methane_area_to_ppm_FID(amount):
     if amount == -1:
-        return 1 # TODO FIND ACTUAL SOURCE FOR GCFID DETECTION LIMIT
+        return COMPOUNDS["CH4"]['atm_conc']
     ppm =  0.141*amount + -7.31
     return ppm
  
 
 def convert_CO2_area_to_ppm_TCD_CO2(amount):
     if amount==-1:
-        return 10 # This is the limit of detection for the GCTCD # TODO FIND SOURCE
+        return COMPOUNDS["CO2"]['atm_conc']
     ppm = 1.75* amount + -25.5
     return ppm
 

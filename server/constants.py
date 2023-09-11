@@ -1,7 +1,7 @@
 
 COMPOUNDS = {
-"CO2": {"name": "CO2", "molecular_weight": 44.01, "density": 1.87, "retention_time": [4.6, 4.75], "atm_conc": 420},
-"CH4": {"name": "CH4", "molecular_weight": 16.04, "density": 0.657, "retention_time": [2.56, 2.58], "atm_conc": 1.922},
+"CO2": {"name": "CO2", "molecular_weight": 44.01, "density": 1.87, "retention_time": [4.6, 4.75], "atm_conc": 420, 'std_dev': 3552},
+"CH4": {"name": "CH4", "molecular_weight": 16.04, "density": 0.657, "retention_time": [2.56, 2.58], "atm_conc": 1.922, 'std_dev': 2.55},
 "CO":  {"name": "CO", "molecular_weight": 28.01, "density": 1.14, "retention_time": [2.38, 2.41]}
 }
 STANDARDS = {

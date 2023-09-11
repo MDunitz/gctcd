@@ -18,8 +18,25 @@ def tidy_data(input_file):
     df =  pd.concat([df, extra_peaks_df], ignore_index=True)
     df['known_conc'] = df.apply(lambda row: set_standards_conc(row), axis=1)
     df['calculated_conc'] = df.apply(lambda row: set_theoretical_conc(row), axis=1)
+    df['log10_calc_conc'] = df.apply(lambda row: log10_calc_conc(row), axis=1)
+    df['upper'] = df.apply(lambda row: add_error_bounds(row, 'UPPER'), axis=1)
+    df['lower'] = df.apply(lambda row: add_error_bounds(row, 'LOWER'), axis=1)
     return df
 
+def add_error_bounds(row, bound_type=None):
+    try:
+        compound = COMPOUNDS[row['peak_compound']]
+        print(f"compound: {compound}")
+        if bound_type == 'UPPER':
+            return row['calculated_conc'] + compound['std_dev']
+        elif bound_type == 'LOWER':
+            return row['calculated_conc'] - compound['std_dev']
+    except KeyError:
+        return None
+    
+
+def log10_calc_conc(row):
+    return np.log10(row['calculated_conc'])
 
 def handle_limit_of_detection(df):
     sub_df = df[(df['sample_id']!="DROP_ME") & (df['is_std']==False)]
