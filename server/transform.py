@@ -7,6 +7,7 @@ def process_sample_data(data_df, incubation_df):
     df['incubation_length'] = df.apply(lambda row: set_incubation_length(row), axis=1)
     df['salt_ratio'] = df.apply(lambda row: set_salt_to_biomass(row), axis=1)
     df['treatment'] = df.apply(lambda row: set_treatment_type(row), axis=1)
+    df["percent_organic_matter"] = df.apply(lambda row: set_percent_organic_matter(row), axis=1)
 
     return df
 
@@ -39,6 +40,19 @@ def set_salt_to_biomass(row):
     if row['ratio'] == "01:05":
         return "1:5"
 
+def set_percent_organic_matter(row):
+    if row['is_std']:
+        return None
+    if row['sample_id'] == 'DROP_ME':
+        return None
+    if row['ratio'] == "01:00":
+        return "100%"
+    if row['ratio'] == "01:01":
+        return "50%"
+    if row['ratio'] == "16:01":
+        return "94%"
+    if row['ratio'] == "01:05":
+        return "20%"
 
 
 def set_treatment_type(row):

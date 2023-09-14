@@ -23,13 +23,37 @@ def get_CO2_df(df):
 
 def create_co2_chart(df):
     CO2_df = get_CO2_df(df)
-    plot = create_conc_v_salt_ratio_with_annotated_treatments_chart("CO2 Concentration v Organic Matter:Salt", CO2_df, COMPOUNDS["CO2"]["atm_conc"])
+    plot = create_conc_v_organic_matter_percent_with_annotated_treatments_chart("CO2 Concentration v Percent Organic Matter", CO2_df, COMPOUNDS["CO2"]["atm_conc"], y_range=[10e0, 10e5], atm_conc_offset=200)
     return plot
 
 def create_methane_chart(df):
     methane_df = get_methane_df(df)
+    plot = create_conc_v_organic_matter_percent_with_annotated_treatments_chart("Methane Concentration v Percent Organic Matter", methane_df, COMPOUNDS["CH4"]["atm_conc"], y_range=[10e-2, 10e2], atm_conc_offset=1)
+    return plot
+
+def create_methane_incubation_length_chart(df):
+    methane_df = get_methane_df(df)
+    plot = time_v_conc("Methane Concentration Over Time", methane_df, COMPOUNDS["CH4"]["atm_conc"], y_range=[10e-2, 10e2], atm_conc_offset=1)
+    return plot
+
+
+def create_co2_incubation_length_chart(df):
+    co2_df = get_CO2_df(df)
+    plot = time_v_conc("CO2 Concentration Over Time", co2_df, COMPOUNDS["CO2"]["atm_conc"],  y_range=[10e0, 10e5], atm_conc_offset=150)
+    return plot
+
+
+
+def create_salt_ratio_co2_chart(df):
+    CO2_df = get_CO2_df(df)
+    plot = create_conc_v_salt_ratio_with_annotated_treatments_chart("CO2 Concentration v Organic Matter:Salt", CO2_df, COMPOUNDS["CO2"]["atm_conc"])
+    return plot
+
+def create_salt_ratio_methane_chart(df):
+    methane_df = get_methane_df(df)
     plot = create_conc_v_salt_ratio_with_annotated_treatments_chart("Methane Concentration v Organic Matter:Salt", methane_df, COMPOUNDS["CH4"]["atm_conc"])
     return plot
+
 
 
 def create_2mL_co2_chart(df):
@@ -56,16 +80,6 @@ def create_40mL_methane_chart(df):
     plot = create_conc_v_salt_ratio_with_annotated_treatments_chart("Methane conc v Organic Matter:Salt (40mL)", forty_mL_df, COMPOUNDS["CH4"]["atm_conc"])
     return plot
 
-def create_methane_incubation_length_chart(df):
-    methane_df = get_methane_df(df)
-    plot = time_v_conc("Methane Concentration Over Time", methane_df, COMPOUNDS["CH4"]["atm_conc"])
-    return plot
-
-
-def create_co2_incubation_length_chart(df):
-    co2_df = get_CO2_df(df)
-    plot = time_v_conc("CO2 Concentration Over Time", co2_df, COMPOUNDS["CO2"]["atm_conc"])
-    return plot
 
 
 def create_2mL_methane_incubation_length_chart(df):
@@ -228,13 +242,107 @@ def create_conc_v_salt_ratio_with_annotated_treatments_chart(title, df, atmosphe
         atm_conc_line = Span(location=atmospheric_conc, dimension='width', line_color='grey', line_width=2)
         p.add_layout(atm_conc_line)
 
-    my_label = Label(x=0, y=atmospheric_conc-200, text='Atmospheric Concentration')
-    p.add_layout(my_label)
+        my_label = Label(x=0, y=atmospheric_conc-200, text='Atmospheric Concentration')
+        p.add_layout(my_label)
     p.add_layout(bokeh.models.Legend(), "right")
     p.legend.click_policy = "hide"
     # bar = ColorBar(color_mapper=exp_cmap, location=(0,0))
     # p.add_layout(bar, "right")
     return p
+
+
+
+def create_conc_v_organic_matter_percent_with_annotated_treatments_chart(title, df, atmospheric_conc, include_errors=False, y_range=[10e-2, 10e5], atm_conc_offset=0):
+    wet_df = ColumnDataSource(df[df["treatment"]=="Wet"])
+    dry_df = ColumnDataSource(df[df["treatment"]=="Dry"])
+    x_range = ["100%", "94%", "50%", "20%"]
+
+    TOOLTIPS = [
+    ("sample_id", "@sample_id"),
+    ("Measured Concentration", "@calculated_conc")
+        ]
+    
+    # exp_cmap = LinearColorMapper(palette=Inferno256, low=incubation_length_max, high=0)
+    p = plotting.figure(
+        title=title,
+        x_axis_label = "Percent Organic Matter",
+        y_axis_label = "Measured Concentration (ppm)",
+        x_range=x_range,
+        y_axis_type="log",
+        y_range=y_range,
+        toolbar_location='above',
+        tooltips = TOOLTIPS,
+        sizing_mode="stretch_width"
+    )
+    if include_errors is False:
+        p.triangle(
+            source=wet_df,
+            x = jitter("percent_organic_matter", width=0.3, range=p.x_range),
+            y = "calculated_conc",
+            color="blue",
+            size=10,
+            legend_label="Wet"
+        )
+        p.plus(
+            source=dry_df,
+            x = jitter("percent_organic_matter", width=0.3, range=p.x_range),
+            y = "calculated_conc",
+            color="red",
+            size=10,
+            legend_label="Dry"
+        )
+    p.x_range.range_padding = 0
+
+    if include_errors==True:
+        print('adding error bars')
+        # p.triangle(
+        #     source=wet_df,
+        #     x="percent_organic_matter",
+        #     y = "calculated_conc",
+        #     color="blue",
+        #     size=10,
+        #     legend_label="Wet"
+        # )
+        # p.plus(
+        #     source=dry_df,
+        #     x="percent_organic_matter",
+        #     y = "calculated_conc",
+        #     color="red",
+        #     size=10,
+        #     legend_label="Dry"
+        # )
+        p.segment(
+            source=wet_df,
+            x0="percent_organic_matter",
+            y0='lower',
+            x1="salt_ratio",
+            y1='upper',
+            line_width=2,
+            color="blue",
+            legend_label="Wet Error Bars"
+        )
+        p.segment(
+            source=dry_df,
+            x0="percent_organic_matter",
+            y0='lower',
+            x1="salt_ratio",
+            y1='upper',
+            line_width=20,
+            color="red",
+            legend_label="Dry Error Bars"
+        )
+    if atmospheric_conc:
+        atm_conc_line = Span(location=atmospheric_conc, dimension='width', line_color='grey', line_width=2)
+        p.add_layout(atm_conc_line)
+
+        my_label = Label(x=0, y=atmospheric_conc-atm_conc_offset, text='Atmospheric Concentration')
+        p.add_layout(my_label)
+    p.add_layout(bokeh.models.Legend(), "right")
+    p.legend.click_policy = "hide"
+    # bar = ColorBar(color_mapper=exp_cmap, location=(0,0))
+    # p.add_layout(bar, "right")
+    return p
+
 
 
 def create_salt_ratio_v_conc_chart(title, df):
@@ -319,7 +427,7 @@ def create_salt_ratio_v_conc_chart(title, df):
     
 
 
-def time_v_conc(title, df, atmospheric_conc, connect_samples=True):
+def time_v_conc(title, df, atmospheric_conc, connect_samples=False, y_range=[10e-2, 10e5], atm_conc_offset=0):
     incubation_length_max = int(df["incubation_length"].max())
     wet_df = ColumnDataSource(df[df["treatment"]=="Wet"])
     dry_df = ColumnDataSource(df[df["treatment"]=="Dry"])
@@ -338,8 +446,8 @@ def time_v_conc(title, df, atmospheric_conc, connect_samples=True):
         x_axis_label = "Incubation Length (Days)",
         y_axis_label = "Measured Concentration(ppm)",
         y_axis_type="log",
-        y_range=[10e-2, 10e5],
-        x_range=[30, incubation_length_max+10],
+        y_range=y_range,
+        x_range=[20, incubation_length_max+10],
         toolbar_location='above',
         tooltips = TOOLTIPS,
         sizing_mode="stretch_width"
@@ -370,9 +478,12 @@ def time_v_conc(title, df, atmospheric_conc, connect_samples=True):
                 y="calculated_conc"
             )
     if atmospheric_conc:
-        atm_conc_line = Span(location=atmospheric_conc, dimension='width', line_color='red', line_width=2)
+        atm_conc_line = Span(location=atmospheric_conc, dimension='width', line_color='grey', line_width=2)
         p.add_layout(atm_conc_line)
-   
+        my_label = Label(x=10, y=atmospheric_conc-atm_conc_offset, text='Atmospheric Concentration')
+        p.add_layout(my_label)
+
+
     p.add_layout(bokeh.models.Legend(), "above")
     p.legend.click_policy = "hide"
     return p
