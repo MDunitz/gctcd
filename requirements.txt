@@ -2,6 +2,7 @@ black
 black[jupyter]
 bokeh
 click
+cmcrameri
 flake8
 ipykernel
 numpy
