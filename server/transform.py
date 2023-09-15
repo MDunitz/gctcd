@@ -52,7 +52,7 @@ def set_percent_organic_matter(row):
     if row['ratio'] == "16:01":
         return "94%"
     if row['ratio'] == "01:05":
-        return "20%"
+        return "16.7%"
 
 
 def set_treatment_type(row):

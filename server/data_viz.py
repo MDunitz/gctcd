@@ -31,13 +31,14 @@ def create_co2_chart(df):
     CO2_df = get_CO2_df(df)
     plot = create_conc_v_organic_matter_percent_with_annotated_treatments_chart("CO2 Concentration v Percent Organic Matter", CO2_df, COMPOUNDS["CO2"]["atm_conc"], y_range=[10e0, 10e5], atm_conc_offset=150)
     plot.height = 600
-    plot.width = 800
+    plot.width = 1200
     return plot
 
 def create_methane_chart(df):
     methane_df = get_methane_df(df)
     plot = create_conc_v_organic_matter_percent_with_annotated_treatments_chart("Methane", methane_df, COMPOUNDS["CH4"]["atm_conc"], y_range=[10e-2, 10e2], atm_conc_offset=1)
     plot.width=1000
+    plot.height = 600
     return plot
 
 def create_methane_incubation_length_chart(df):
@@ -195,7 +196,7 @@ def create_log10_conc_v_salt_ratio_with_annotated_treatments_chart(title, df, at
 def create_create_log10conc_v_organic_matter_percent_with_annotated_treatments_chart(title, df, atmospheric_conc, include_errors=False, atm_conc_offset=0):
     wet_df = ColumnDataSource(df[df["treatment"]=="Wet"])
     dry_df = ColumnDataSource(df[df["treatment"]=="Dry"])
-    x_range = ["100%", "94%", "50%", "20%"]
+    x_range = ["100%", "94%", "50%", "16.7%"]
 
     TOOLTIPS = [
     ("sample_id", "@sample_id"),
@@ -376,7 +377,7 @@ def create_conc_v_salt_ratio_with_annotated_treatments_chart(title, df, atmosphe
 def create_conc_v_organic_matter_percent_with_annotated_treatments_chart(title, df, atmospheric_conc, include_errors=False, y_range=[10e-2, 10e5], atm_conc_offset=0):
     wet_df = ColumnDataSource(df[df["treatment"]=="Wet"])
     dry_df = ColumnDataSource(df[df["treatment"]=="Dry"])
-    x_range = ["100%", "94%", "50%", "20%"]
+    x_range = ["100%", "94%", "50%", "16.7%"]
     
     TOOLTIPS = [
     ("sample_id", "@sample_id"),
