@@ -30,7 +30,7 @@ def add_error_bounds(row, bound_type=None):
         if bound_type == 'UPPER':
             return row['calculated_conc'] + compound['std_dev']
         elif bound_type == 'LOWER':
-            return row['calculated_conc'] - compound['std_dev']
+            return max(row['calculated_conc'] - compound['std_dev'], compound['atm_conc'])
     except KeyError:
         return None
     
