@@ -9,6 +9,8 @@ from bokeh.colors import RGB
 
 import pandas as pd
 import numpy as np
+from scipy.stats import linregress
+import matplotlib.pyplot as plt
 
 from cmcrameri import cm as scm
 TAB10 = ["#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f",
@@ -619,5 +621,40 @@ def time_v_conc(title, df, atmospheric_conc, connect_samples=False, y_range=[10e
     p.legend.label_text_font_size = "20pt"
     return p
     
-
+def create_amazing_flux_plot(flux_df):
+    """
+    Usage: flux_fig = create_amazing_flux_plot(flux_df.copy())
+    """
+    flux_df["Sample_Name"] = flux_df["Sample_Name"].str.slice(0, 7)
+    for i, row in flux_df.iterrows():
+        if row["Sample_Name"].startswith("40ML1_"):
+            flux_df.at[i, "Sample_Name"] = row["Sample_Name"][:-1] + str(int(row["Sample_Name"][-1]) - 1)
+    flux_means = pd.DataFrame(flux_df.groupby(["Sample_Name", "incubation_length"])["calculated_conc"].mean())
+    flux_trends = {s: linregress(flux_means.loc[s].index.values, flux_means.loc[s].values.ravel()) for s in flux_means.index.levels[0]}
+    fig, ax = plt.subplots(figsize=(8, 5))
+    treatments = ["0%", "6%", "50%", "83.3%"]
+    for s in flux_means.index.levels[0]:
+        s_x = flux_means.loc[s].index.values
+        s_y = flux_means.loc[s].values.ravel()
+        lr = linregress(s_x, s_y)
+        if "40ML1" in s:
+            ci = 0.6 + int(s[-1]) / 10
+            l = f"Dry, {treatments[int(s[-1])]} Salt"
+        else:
+            ci = 0.4 - int(s[-1]) / 10
+            l = f"Wet, {treatments[int(s[-1])]} Salt"
+        c = scm.vik(ci)
+        ax.scatter(s_x, s_y, fc=c, zorder=1, label=l)
+        ax.plot(s_x, lr.intercept + lr.slope * s_x, c=c, zorder=0)
+        if (int(s[-3]) == 2) and (int(s[-1]) < 3):
+            ax.annotate(f"slope={lr.slope:.1f}, r={lr.rvalue:.2f}",
+                        (s_x[-1], s_y[-1]),
+                        xytext=(15, 0),
+                        textcoords="offset pixels")
+    ax.set_xlabel("Incubation Time [d]", fontsize=20)
+    ax.set_ylabel("Concentration [ppm]", fontsize=20)
+    ax.set_ylim(0, 200)
+    ax.tick_params(axis="both", labelsize=16)
+    ax.legend(ncol=2, fontsize=15, loc="upper left")
+    return fig
 
