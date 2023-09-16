@@ -52,6 +52,8 @@ def create_methane_incubation_length_chart(df):
 def create_co2_incubation_length_chart(df):
     co2_df = get_CO2_df(df)
     plot = time_v_conc("CO2", co2_df, COMPOUNDS["CO2"]["atm_conc"],  y_range=[10e0, 10e5], atm_conc_offset=150)
+    plot.height = 600
+    plot.width = 1200
     return plot
 
 
@@ -72,6 +74,8 @@ def create_2mL_co2_chart(df):
     CO2_df = get_CO2_df(df)
     two_mL_df = CO2_df[CO2_df["Sample_Name"].str.startswith("2ML")]
     plot = create_conc_v_organic_matter_percent_with_annotated_treatments_chart("CO2 (2mL)", two_mL_df, COMPOUNDS["CO2"]["atm_conc"], y_range=[10e0, 10e5], atm_conc_offset=150)
+    plot.height = 600
+    plot.width = 1000
     return plot
 
 def create_2mL_methane_chart(df):
@@ -87,6 +91,7 @@ def create_40mL_co2_chart(df):
     forty_mL_df = CO2_df[CO2_df["Sample_Name"].str.startswith("40ML")]
     plot = create_conc_v_organic_matter_percent_with_annotated_treatments_chart("CO2 (40mL)", forty_mL_df, COMPOUNDS["CO2"]["atm_conc"], y_range=[10e0, 10e5], atm_conc_offset=150)
     plot.height = 600
+    plot.width = 800
     return plot
 
 def create_40mL_methane_chart(df):
@@ -113,6 +118,8 @@ def create_2mL_co2_incubation_length_chart(df):
     co2_df = get_CO2_df(df)
     two_mL_df = co2_df[co2_df["Sample_Name"].str.startswith("2ML")]
     plot = time_v_conc("CO2 (2mL)", two_mL_df, COMPOUNDS["CO2"]["atm_conc"], y_range=[10e0, 10e5], atm_conc_offset=150)
+    plot.height = 600
+    plot.width = 1200
     return plot
 
 def create_40mL_methane_incubation_length_chart(df):
@@ -129,7 +136,7 @@ def create_40mL_co2_incubation_length_chart(df):
     forty_mL_df = co2_df[co2_df["Sample_Name"].str.startswith("40ML")]
     plot = time_v_conc("CO2 (40mL)", forty_mL_df, COMPOUNDS["CO2"]["atm_conc"], y_range=[10e0, 10e5], atm_conc_offset=150)
     plot.height = 600
-    plot.width = 800    
+    plot.width = 1200    
     return plot
 
 # bokeh.io.output_notebook()
